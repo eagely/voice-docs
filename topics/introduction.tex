@@ -1,3 +1,16 @@
 \renewcommand*\chapterpagestyle{scrheadings}
 \chapter{Introduction}
-Goal of the project
+
+\section{Technologies}
+
+\subsection{Spring Boot}
+Spring Boot is a convention-over-configuration solution built on top of the Spring Framework. It significantly reduces development time by providing auto-configuration of Spring application context, embedded servers, and pre-configured starter dependencies. This opinionated approach allows developers to focus on business logic rather than infrastructure and boilerplate setup, making it particularly suitable for microservices and modern web applications.
+
+\subsection{Kotlin Programming Language}
+Kotlin is a modern, statically typed programming language that runs on the Java Virtual Machine. It was developed by JetBrains to offer complete Java interoperability while providing modern language features like null safety, coroutines for asynchronous programming, and more concise syntax. Kotlin has established itself as a major player in the Java ecosystem, particularly in Android development, where it serves as the preferred language. Additionally, it has gained official support\footnote{Kotlin support in the Spring Framework \cite{spring-kotlin}} from Spring Boot for server-side development. Based on these technical advantages and prior implementation experience, Kotlin was selected as the primary backend programming language.
+
+\subsection{OpenStreetMap}
+OpenStreetMap is a collaborative, community-driven project that provides free geographic data and mapping services worldwide. It functions as an open-source alternative to proprietary mapping solutions, offering detailed street maps, geographic features, and points of interest that can be freely used in applications. The project's data is contributed and maintained by a global community of mappers, ensuring broad coverage and regular updates. The service also provides a comprehensive RESTful API that enables, among other features, conversion of place names and addresses into geographic coordinates (latitude and longitude).
+
+\subsection{OpenWeatherMap}
+OpenWeatherMap is a collaborative weather data platform that aggregates meteorological data from thousands of weather stations and sensors worldwide. It serves as an accessible alternative to traditional weather services, providing comprehensive atmospheric data including temperature, precipitation, wind conditions, and atmospheric pressure. The platform's data is collected from a global network of meteorological stations, satellites, and radar systems, ensuring broad coverage and frequent updates. The service offers a robust RESTful API that enables access to current weather conditions, forecasts, and historical weather data in multiple formats and measurement units.

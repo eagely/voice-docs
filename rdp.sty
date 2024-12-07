@@ -1,7 +1,20 @@
 \ProvidesPackage{rdp}
 \RequirePackage[automark]{scrlayer-scrpage}
 \RequirePackage{graphicx}
-\RequirePackage[backend=bibtex,style=numeric]{biblatex}
+\RequirePackage{xcolor}
+\RequirePackage[backend=bibtex,style=numeric,sorting=none]{biblatex}
+\RequirePackage[colorlinks=true,
+linkcolor=black,
+filecolor=magenta,      
+urlcolor=blue,
+citecolor=blue,
+pdftex,
+bookmarks=true,
+bookmarksopen=false,
+pdfpagemode=UseOutlines,
+plainpages=false]
+{hyperref}
+\RequirePackage{listings}
 \addbibresource{references.bib}
 \NeedsTeXFormat{LaTeX2e}
 
@@ -25,6 +38,9 @@
     \stepcounter{candidatecount}
     \expandafter\def\expandafter\candidatetopiclist\expandafter{\candidatetopiclist
         \item \textbf{#1}: #2
+    }
+    \expandafter\def\expandafter\candidatelist\expandafter{\candidatelist
+        #1\ifnum\value{candidatecount}=1\else\\\fi
     }
     \expandafter\def\expandafter\signaturelist\expandafter{\signaturelist
         \sigentry{#1}
@@ -126,7 +142,7 @@
     \cleardoublepage
 }
 
-\newenvironment{affidavit}{
+\newcommand{\affidavit}{
     \thispagestyle{empty}
     \section*{Affidavit}
 
@@ -159,17 +175,15 @@ The undersigned candidates have chosen to prepare a diploma thesis with the foll
         \begin{minipage}[t]{0.45\textwidth}
         \end{minipage}
     \fi
-}
-{
     \vspace{2cm}
     \vfill
-    \newpage
+    \cleardoublepage
 }
 \newcommand{\timeentriescurrent}{}
 \newcommand{\timeentriesnext}{}
 \newcounter{totalHours}
 \newcommand{\addtimeentry}[3]{
-  \ifnum#1<6
+  \ifnum#1<36
     \g@addto@macro\timeentriesnext{%
       #1 & #2 & #3 \addtocounter{totalHours}{#3}\\\hline
     }
