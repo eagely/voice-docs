@@ -1,16 +1,23 @@
 \renewcommand*\chapterpagestyle{scrheadings}
 \chapter{Introduction}
 
-\section{Technologies}
+This project aims to provide a voice assistant implementation that can be used with various frontends,
+one such frontend being implemented parallel to this project using the Qt framework \footnote{The Qt Framework \cite{qt}}.
 
-\subsection{Spring Boot}
-Spring Boot is a convention-over-configuration solution built on top of the Spring Framework. It significantly reduces development time by providing auto-configuration of Spring application context, embedded servers, and pre-configured starter dependencies. This opinionated approach allows developers to focus on business logic rather than infrastructure and boilerplate setup, making it particularly suitable for microservices and modern web applications.
+\section{Project Scope}
+The project scope encompassed the following objectives:
+\begin{itemize}
+    \item Efficient processing, with a target response latency of 1 second
+    \item Integration into Linux windows managers, allowing users to operate their system using voice commands
+    \item Functionality allowing explicit recording and voice activation
+    \item Allowing the user to configure which algorithms or APIs they want to use, as well as the output format
+\end{itemize}
 
-\subsection{Kotlin Programming Language}
-Kotlin is a modern, statically typed programming language that runs on the Java Virtual Machine. It was developed by JetBrains to offer complete Java interoperability while providing modern language features like null safety, coroutines for asynchronous programming, and more concise syntax. Kotlin has established itself as a major player in the Java ecosystem, particularly in Android development, where it serves as the preferred language. Additionally, it has gained official support\footnote{Kotlin support in the Spring Framework \cite{spring-kotlin}} from Spring Boot for server-side development. Based on these technical advantages and prior implementation experience, Kotlin was selected as the primary backend programming language.
-
-\subsection{OpenStreetMap}
-OpenStreetMap is a collaborative, community-driven project that provides free geographic data and mapping services worldwide. It functions as an open-source alternative to proprietary mapping solutions, offering detailed street maps, geographic features, and points of interest that can be freely used in applications. The project's data is contributed and maintained by a global community of mappers, ensuring broad coverage and regular updates. The service also provides a comprehensive RESTful API that enables, among other features, conversion of place names and addresses into geographic coordinates (latitude and longitude).
-
-\subsection{OpenWeatherMap}
-OpenWeatherMap is a collaborative weather data platform that aggregates meteorological data from thousands of weather stations and sensors worldwide. It serves as an accessible alternative to traditional weather services, providing comprehensive atmospheric data including temperature, precipitation, wind conditions, and atmospheric pressure. The platform's data is collected from a global network of meteorological stations, satellites, and radar systems, ensuring broad coverage and frequent updates. The service offers a robust RESTful API that enables access to current weather conditions, forecasts, and historical weather data in multiple formats and measurement units.
+\section{Background and Motivation}
+Voice assistants have experienced steady adoption growth,
+though they were often regarded as supplementary rather than essential tools.
+This project sought to address this limitation
+by developing a voice assistant frontend solution that could enhance users' workflows
+while maintaining minimal intrusiveness.
+The implementation focused on extending traditional voice assistant capabilities
+with advanced features such as workspace management and speech-to-text integration.
