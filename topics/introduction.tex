@@ -2,7 +2,7 @@
 \chapter{Introduction}
 
 This project aims to provide a voice assistant implementation that can be used with various frontends,
-one such frontend being implemented parallel to this project using the Qt framework \footnote{The Qt Framework \cite{qt}}.
+one such frontend being implemented parallel to this project using the Qt framework \footnote{Qt Framework \cite{qt}}.
 
 \section{Project Scope}
 The project scope encompassed the following objectives:
@@ -21,3 +21,18 @@ by developing a voice assistant frontend solution that could enhance users' work
 while maintaining minimal intrusiveness.
 The implementation focused on extending traditional voice assistant capabilities
 with advanced features such as workspace management and speech-to-text integration.
+
+\section{Technology Considerations}
+Achieving low response latency is heavily influenced by the choice of the technology stack.
+The initial prototype of the voice assistant was implemented using Kotlin and Spring Boot
+\footnote{Spring Framework \cite{spring}}, which offered flexibility and ease of development.
+However, as the project evolved and introduced the stringent 1-second latency goal,
+it became clear that a different approach was necessary.
+
+To meet this performance requirement, a transition was made to Rust.
+Rust was selected for its ability to produce highly optimized,
+natively compiled binaries, making it ideal for applications requiring low latency.
+Additionally, Rust's focus on memory safety and robust error handling
+ensured the reliability of the application without compromising speed.
+Previous experience with Rust further accelerated the development process,
+making it the optimal choice for this project.
