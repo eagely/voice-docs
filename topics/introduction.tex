@@ -22,7 +22,8 @@ while maintaining minimal intrusiveness.
 The implementation focused on extending traditional voice assistant capabilities
 with advanced features such as workspace management and speech-to-text integration.
 
-\section{Technology Considerations}
+\section{System Architechture}
+\subsection{Technology Considerations}
 Achieving low response latency is heavily influenced by the choice of the technology stack.
 The initial prototype of the voice assistant was implemented using Kotlin and Spring Boot
 \footnote{Spring Framework \cite{spring}}, which offered flexibility and ease of development.
@@ -36,3 +37,16 @@ Additionally, Rust's focus on memory safety and robust error handling
 ensured the reliability of the application without compromising speed.
 Previous experience with Rust further accelerated the development process,
 making it the optimal choice for this project.
+
+\subsection{Design}
+The complete voice assistant consists of two parallel projects:
+this Rust backend and a parallel Qt-frontend that is not part of the thesis.
+The frontend serves as the user interface layer,
+providing efficient access to the backend's voice processing capabilities.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{assets/stackchart}
+    \caption{System architecture showing the Qt frontend (parallel running project) and the Rust backend components (this diploma thesis). The processing pipeline flows from the frontend through various backend stages, each offering multiple implementation options.}
+    \label{fig:system-architecture}
+\end{figure}
