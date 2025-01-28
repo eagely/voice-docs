@@ -90,3 +90,15 @@ offering a robust and adaptable solution for voice interaction.
     each offering multiple implementation options.}
     \label{fig:design}
 \end{figure}
+
+\section{Integration of Artificial Intelligence in Responses}
+
+A critical consideration in the design of the voice assistant is its handling of queries for which no specific implementation exists.
+For instance, a command such as "Order a pizza" falls outside the scope of the assistant's functionality at the time of development,
+though it is anticipated that such features might be supported in future iterations.
+The question arises: should the assistant respond with a generic message such as "I cannot process this query,"
+or should it provide a more contextually appropriate reply, such as "I am not capable of ordering food yet"?
+
+This challenge is addressed through the integration of Large Language Models (LLMs), which are often referred to broadly as "AI" in commercial contexts.
+When the assistant encounters a query that cannot be directly parsed into a predefined instruction, the query is forwarded to an LLM.
+The LLM is provided with a custom prompt that contextualizes the assistant's role.
