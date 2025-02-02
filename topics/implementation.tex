@@ -1,0 +1,6 @@
+\renewcommand*\chapterpagestyle{scrheadings}
+\chapter{Implementation}
+
+\section{Spring Boot Prototype}
+The initial implementation of the backend service was developed in Kotlin using the Spring Boot framework\footnote{Spring Framework \cite{spring}}, a Java-based platform designed to provide foundational infrastructure for web applications. The service featured a prototype REST endpoint accessible at \texttt{http://localhost:8080/process}, which accepted textual input as an interim solution prior to the integration of audio processing capabilities. This endpoint utilized pattern-matching logic to direct weather-related queries to a dedicated weather service, while all other queries were processed using the GPT-4 language model.
+
