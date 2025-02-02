@@ -91,14 +91,24 @@ offering a robust and adaptable solution for voice interaction.
     \label{fig:design}
 \end{figure}
 
-\section{Integration of Artificial Intelligence in Responses}
+\section{Integration of Artificial Intelligence}
+The voice assistant employs artificial intelligence (AI) to process user requests and generate responses.
+This implementation provides pattern-matching systems as well as machine learning (ML) techniques,
+particularly large language models (LLMs), to provide a choice between response speed and contextual understanding.
 
-A critical consideration in the design of the voice assistant is its handling of queries for which no specific implementation exists.
-For instance, a command such as "Order a pizza" falls outside the scope of the assistant's functionality at the time of development,
-though it is anticipated that such features might be supported in future iterations.
-The question arises: should the assistant respond with a generic message such as "I cannot process this query,"
-or should it provide a more contextually appropriate reply, such as "I am not capable of ordering food yet"?
+\subsection{Fallback Response Generation}
+When encountering requests beyond its current capabilities (e.g., \textit{"Order a pizza"}),
+the system uses LLMs to generate helpful responses rather than generic errors. For example, instead of replying \textit{``Command not recognized,"},
+the assistant might respond: \textit{``I cannot order food yet, but I can show you local pizza restaurants."}
+This approach maintains conversational flow while honestly acknowledging system limitations.
 
-This challenge is addressed through the integration of Large Language Models (LLMs), which are often referred to broadly as "AI" in commercial contexts.
-When the assistant encounters a query that cannot be directly parsed into a predefined instruction, the query is forwarded to an LLM.
-The LLM is provided with a custom prompt that contextualizes the assistant's role.
+\subsection{Input Processing Architecture}
+The system uses two methods to interpret user input:
+
+\begin{enumerate}
+    \item \textbf{Pattern Matching}: Direct commands like \textit{``Set timer for 10 minutes"} can be matched to predefined templates for immediate execution
+    \item \textbf{Machine Learning}: Complex or ambiguous phrases (e.g., \textit{``Will it rain in that city with the musical history museum?"})
+    will fail pattern matching and require using LLMs. These models infer meaning from context, even when wording is unconventional
+\end{enumerate}
+
+While pattern matching can handle a large number of common queries instantly, machine learning can resolve edge cases requiring contextual awareness.
