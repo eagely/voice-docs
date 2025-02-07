@@ -4,3 +4,18 @@
 \section{Spring Boot Prototype}
 The initial implementation of the backend service was developed in Kotlin using the Spring Boot framework\footnote{Spring Framework \cite{spring}}, a Java-based platform designed to provide foundational infrastructure for web applications. The service featured a prototype REST endpoint accessible at \texttt{http://localhost:8080/process}, which accepted textual input as an interim solution prior to the integration of audio processing capabilities. This endpoint utilized pattern-matching logic to direct weather-related queries to a dedicated weather service, while all other queries were processed using the GPT-4 language model.
 
+\section{Rust Microservices Architecture}
+As outlined in Section \ref{sec:design}, the system employs a modular microservices architecture where components can be swapped or updated independently.
+This is achieved through Rust's trait system, which defines shared functionality for different structs, similar to interfaces in object-oriented languages.
+Each microservice (e.g., audio transcription, weather data processing) implements a specific trait, ensuring consistent behavior across implementations.
+The \texttt{async\_trait} crate enables asynchronous method support, critical for performance in I/O-bound tasks like audio processing or network requests.
+
+For example, the \texttt{TranscriptionService} trait defines a contract for audio-to-text conversion.
+Implementations of this trait must provide an asynchronous \texttt{transcribe} method that accepts audio data and returns a text result:
+\begin{minted}{rust}
+#[async_trait]
+pub trait TranscriptionService: Send + Sync {
+    async fn transcribe(&self, audio: &Bytes) -> Result<String>;
+}
+\end{minted}
+This structure ensures compatibility between services while allowing flexibility in underlying technologies (e.g., using different speech-to-text APIs).
