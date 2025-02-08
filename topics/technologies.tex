@@ -1,0 +1,60 @@
+\renewcommand*\chapterpagestyle{scrheadings}
+\chapter{Technologies}
+
+This chapter provides an overview of the key
+technologies used in the project.
+Each technology was chosen for its unique benefits in
+addressing specific project requirements, from rapid
+prototyping to high-performance, resource-constrained deployments.
+
+\section{Programming Languages}
+This section examines the programming languages employed
+in the project,
+outlining their strengths and the context in which they
+were used.
+
+\subsection{Kotlin}
+Kotlin\footnote{Kotlin \cite{kotlin}} was initially selected
+for its seamless interoperability with Java.
+This allowed rapid prototyping by leveraging the extensive
+Java ecosystem, including existing libraries, frameworks,
+and development tools.
+However, after further evaluation and a small Kotlin prototype,
+it was decided that Kotlin would not be the best choice for this project.
+The evaluation indicated that as the project scaled with many microservices,
+Kotlin's performance would likely be insufficient to meet the 1-second response time goal.
+This led to the consideration and eventual adoption of Rust.
+
+\subsection{Rust}
+Rust\footnote{Rust \cite{rust}} was adopted for its ability to
+deliver C-like performance
+while ensuring memory safety through modern tooling and a robust
+ownership model.
+Its compile-time guarantees help avoid common pitfalls such as
+null pointer dereferences and data races.
+These features make Rust especially well-suited for managing
+resource-intensive workloads
+and scaling microservices on low-end hardware---such as a Raspberry Pi---
+without sacrificing efficiency or productivity.
+
+\section{Frameworks}
+This section details the frameworks integrated into the project,
+each chosen to support specific architectural patterns and
+enhance development efficiency.
+
+\subsection{Spring}
+The Spring Framework\footnote{Spring \cite{spring}} was chosen for its
+strong support for building microservices
+and its deep integration with the Java ecosystem.
+Built around the Model-View-Controller (MVC) architecture,
+Spring offers a well-organized structure
+for developing web applications, which aligns seamlessly with
+the project’s design objectives.
+
+\subsection{Tokio}
+Tokio\footnote{Tokio \cite{tokio}} is an asynchronous runtime for Rust
+that simplifies the development of non-blocking, concurrent applications.
+Its ability to manage asynchronous I/O operations efficiently makes it
+ideal for preventing busy waiting,
+ensuring that the project can handle high concurrency and maintain
+optimal performance even under heavy load.
