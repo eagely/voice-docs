@@ -26,20 +26,6 @@ The project scope encompasses the following key objectives:
 \end{itemize}
 
 \section{System Architecture}
-\subsection{Technology Considerations}
-The choice of technology stack plays a critical role in achieving low response latency.
-The initial prototype of the voice assistant was developed using Kotlin and Spring Boot\footnote{Spring Framework \cite{spring}},
-which provided flexibility and ease of development.
-However, as the project evolved and the stringent 1-second latency goal became a priority,
-it became evident that a more performant approach was necessary.
-
-To meet this performance requirement, the project transitioned to Rust.
-Rust was chosen for its ability to produce highly optimized, natively compiled binaries,
-making it ideal for low-latency applications.
-Additionally, Rust's emphasis on memory safety and robust error handling
-ensured the reliability of the application without sacrificing speed.
-Prior experience with Rust further streamlined the development process,
-solidifying its selection as the optimal choice for this project.
 
 \subsection{Design}
 \label{sec:design}
