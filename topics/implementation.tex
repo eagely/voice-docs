@@ -10,12 +10,78 @@ This is achieved through Rust's trait system, which defines shared functionality
 Each microservice (e.g., audio transcription, weather data processing) implements a specific trait, ensuring consistent behavior across implementations.
 The \texttt{async\_trait} crate enables asynchronous method support, critical for performance in I/O-bound tasks like audio processing or network requests.
 
-For example, the \texttt{TranscriptionService} trait defines a contract for audio-to-text conversion.
-Implementations of this trait must provide an asynchronous \texttt{transcribe} method that accepts audio data and returns a text result:
+\subsection{Recording}
+The recording microservice trait includes two methods: \texttt{start} and \texttt{stop}.
+The \texttt{start} method returns a result indicating success or failure, along with an error message if applicable.
+The \texttt{stop} method returns the recorded audio bytes.
+
+\begin{minted}{rust}
+pub trait RecordingService {
+    fn start(&self) -> Result<()>;
+    fn stop(&self) -> Result<Bytes>;
+}
+\end{minted}
+
+\subsection{Transcription}
+This step involves transcribing audio bytes into text. Multiple options are available for this task,
+including the open-source OpenAI Whisper for local processing or using Cloudflare Workers with Whisper.
+
 \begin{minted}{rust}
 #[async_trait]
 pub trait TranscriptionService: Send + Sync {
     async fn transcribe(&self, audio: &Bytes) -> Result<String>;
 }
 \end{minted}
-This structure ensures compatibility between services while allowing flexibility in underlying technologies (e.g., using different speech-to-text APIs).
+
+\subsection{Parsing}
+Once the audio is transcribed into text, it is passed to a parser.
+The parser can be a simple pattern matcher or an advanced LLM service such as Rasa.
+
+\begin{minted}{rust}
+#[async_trait]
+pub trait ParsingService: Send + Sync {
+    async fn parse(&self, input: &str) -> Result<Action>;
+}
+\end{minted}
+
+This service accepts a string input, which it receives after the transcription process, and returns a structured \texttt{Action}.
+
+\begin{minted}{rust}
+pub struct Action {
+    pub intent: Intent,
+    pub entities: Vec<Entity>,
+    pub text: String,
+}
+\end{minted}
+
+An \texttt{Action} is a combination of intent and entities.
+The intent represents the action that the parser determines should be performed, along with a confidence level.
+This is particularly important for natural language processors using LLMs, where results are probabilistic rather than deterministic.
+
+\begin{minted}{rust}
+pub struct Intent {
+    pub name: IntentKind,
+    pub confidence: Option<f32>,
+}
+
+pub enum IntentKind {
+    LlmQuery,
+    WeatherQuery,
+}
+\end{minted}
+
+Entities function similarly to variables. In a pattern-matching parser, they are straightforward variables,
+while an LLM parser extracts what it deems the most likely desired variable,
+such as the location in a weather request or the brightness level for adjusting lights.
+When using an LLM parser, entities are also paired with a confidence level.
+This confidence is typically very high (around 99.99\%), but it is wrapped in an \texttt{Option}
+to account for scenarios where confidence is not applicable,
+such as with a pattern-matching parser or a geopolitical entity extractor in an LLM processor.
+
+\begin{minted}{rust}
+pub struct Entity {
+    pub entity: String,
+    pub value: String,
+    pub confidence: Option<f32>,
+}
+\end{minted}
