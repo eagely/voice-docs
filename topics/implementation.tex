@@ -85,3 +85,50 @@ pub struct Entity {
     pub confidence: Option<f32>,
 }
 \end{minted}
+
+\subsection{Geocoding}
+The geocoding service converts textual location names into geographical coordinates:
+
+\begin{minted}{rust}
+pub trait GeocodingService: Send + Sync {
+    async fn request(&self, address: &str) -> Result<GeocodeResponse>;
+}
+\end{minted}
+
+The service returns standardized location data including the formatted name and coordinates:
+
+\begin{minted}{rust}
+pub struct GeocodeResponse {
+    pub name: String,
+    pub lat: String,
+    pub lon: String,
+}
+\end{minted}
+
+\subsection{Weather}
+The weather service retrieves weather data using geographical coordinates:
+
+\begin{minted}{rust}
+pub trait WeatherService: Send + Sync {
+    async fn request(&self, geocode: GeocodeResponse) -> Result<String>;
+}
+\end{minted}
+
+The response data is structured according to the OpenWeather API\footnote{OpenWeather API \cite{openweathermap}} specification,
+containing temperature, humidity, and weather condition descriptions:
+
+\begin{minted}{rust}
+pub struct WeatherResponse {
+    pub main: Main,
+    pub weather: Vec<Weather>,
+}
+
+pub struct Main {
+    pub temp: f64,
+    pub humidity: u8,
+}
+
+pub struct Weather {
+    pub description: String,
+}
+\end{minted}
