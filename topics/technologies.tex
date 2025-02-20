@@ -63,5 +63,10 @@ optimal performance even under heavy load.
 These are utilities, such as libraries or other tools that improve quality of life but aren't strictly neccessary.
 
 \subsection{Serde}
-Serde \footnote{\cite{serde}} is a framework for serializing and deserializing Rust data structures efficiently and generically.
+Serde\footnote{Serde \cite{serde}} is a framework for serializing and deserializing Rust data structures efficiently and generically.
 It was used to convert json responses to Rust structs for ease of use and safety.
+
+\subsection{Reqwest}
+Reqwest\footnote{Reqwest \cite{reqwest}} is a high-level HTTP client library for Rust.
+It provides an ergonomic interface for making HTTP requests while leveraging the async/await syntax supported by Tokio.
+The library was chosen for its robust error handling, built-in JSON support through Serde integration, and its simple yet powerful API design.
