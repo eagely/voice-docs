@@ -70,3 +70,9 @@ It was used to convert json responses to Rust structs for ease of use and safety
 Reqwest\footnote{Reqwest \cite{reqwest}} is a high-level HTTP client library for Rust.
 It provides an ergonomic interface for making HTTP requests while leveraging the async/await syntax supported by Tokio.
 The library was chosen for its robust error handling, built-in JSON support through Serde integration, and its simple yet powerful API design.
+
+\subsection{Whisper-rs}
+Whisper-rs\footnote{Whisper-rs \cite{whisper-rs}} provides Rust bindings to OpenAI's Whisper model through its C++ implementation.
+The library enables local speech-to-text transcription without requiring external API calls or cloud services.
+Integration with the project's Rust codebase is handled through a safe interface to the native C++ code,
+while maintaining memory safety and proper resource management.
