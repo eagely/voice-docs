@@ -71,6 +71,12 @@ Reqwest\footnote{Reqwest \cite{reqwest}} is a high-level HTTP client library for
 It provides an ergonomic interface for making HTTP requests while leveraging the async/await syntax supported by Tokio.
 The library was chosen for its robust error handling, built-in JSON support through Serde integration, and its simple yet powerful API design.
 
+\subsection{Cpal}
+Cpal\footnote{Cpal \cite{cpal}} is a low-level cross-platform audio I/O library for Rust.
+It provides a pure-Rust interface for audio playback and recording across different operating systems.
+The library was chosen for its cross-platform compatibility, low overhead, and native integration with Rust's async ecosystem,
+making it ideal for handling real-time audio processing requirements in the project.
+
 \subsection{Whisper-rs}
 Whisper-rs\footnote{Whisper-rs \cite{whisper-rs}} provides Rust bindings to OpenAI's Whisper model through its C++ implementation.
 The library enables local speech-to-text transcription without requiring external API calls or cloud services.
