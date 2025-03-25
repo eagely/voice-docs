@@ -23,8 +23,8 @@ These methods were exposed through the \texttt{RecordingService} trait, which de
 to initiate audio capture, and \texttt{stop}, to retrieve the recorded audio bytes.
 Initially, these methods were synchronous, requiring the server to block while waiting for the user to finish recording.
 However, supporting a remote recording solution necessitated transforming \texttt{RecordingService} into a fully asynchronous trait to facilitate network communication.
-Integrating CPAL’s inherently synchronous and non-thread-safe \texttt{Stream} into an asynchronous context introduced significant implementation challenges.
-CPAL’s \texttt{Stream} type is neither \texttt{Send} nor \texttt{Sync}, preventing safe usage across threads and within async contexts.
+Integrating CPAL's inherently synchronous and non-thread-safe \texttt{Stream} into an asynchronous context introduced significant implementation challenges.
+CPAL's \texttt{Stream} type is neither \texttt{Send} nor \texttt{Sync}, preventing safe usage across threads and within async contexts.
 
 \subsubsection{Temporary Unsafe Implementation}
 To circumvent the concurrency constraints temporarily, the recording component initially utilized an unsafe wrapper named \texttt{UnsafeSendSync}.
@@ -48,13 +48,104 @@ Instead, it interacts solely with the shared state—the mutex-protected ring bu
 Error propagation is handled by transmitting any errors from the synchronous CPAL thread to the asynchronous interface via a Tokio mpsc channel.
 This design ensures asynchronous methods can detect and return relevant errors without violating Rust's safety constraints.
 
-\subsection{Transcription}
-This step involves transcribing audio bytes into text. Multiple options are available for this task,
-including the open-source OpenAI Whisper for local processing or using Cloudflare Workers with Whisper.
+\section{Speech-to-Text Transcription}
+Speech-to-text (STT) systems convert spoken language into written transcriptions through a layered computational process.
+These systems mimic human auditory cognition by combining signal filtering, pattern recognition, and contextual analysis.
+The workflow progresses sequentially, transforming raw sound waves into structured text while balancing speed and accuracy.
 
+\subsection{Audio Preprocessing}
+Raw audio recordings contain background noise and volume inconsistencies that obscure speech signals.
+To address this, preprocessing applies noise reduction algorithms, such as spectral subtraction,
+which isolates vocal frequencies by subtracting non-speech patterns (e.g., wind or keyboard clicks).
+Normalization then stabilizes volume spikes, ensuring whispers and shouts are processed uniformly.
+Finally, feature extraction converts the cleaned audio into machine-readable numerical data.
+
+Mel Frequency Cepstral Coefficients (MFCCs) are widely used for this purpose ---  they mathematically represent
+the "shape" of speech by encoding pitch, tone, and rhythm into a compact vector.
+Alternatively, spectrograms visualize audio as heatmaps of frequency intensity over time,
+allowing convolutional neural networks to treat speech as a spatial pattern.
+
+\subsection{Neural Network Analysis}
+Preprocessed audio enters a neural network trained to map acoustic features to linguistic units.
+Recurrent neural networks (RNNs), particularly long short-term memory (LSTM) variants, excel here
+—--
+they process audio chronologically, maintaining memory of prior sounds to interpret context
+(e.g., distinguishing "ice cream" from "I scream" through syllable relationships).
+
+Transformers, a newer architecture, bypass sequential analysis entirely.
+Instead, they use self-attention mechanisms to dynamically weigh connections between
+disparate audio segments, enabling faster parallel processing of long phrases.
+Hybrid models often combine these approaches, using convolutional layers to detect phonemes
+before feeding them to transformers for sentence-level interpretation.
+
+\subsection{Decoding Ambiguity}
+Network outputs are probabilistic --- for example, a sound midway between "cat" and "cap" might receive
+a 55\% likelihood for "cat." Decoding algorithms resolve these uncertainties using language models
+that prioritize statistically common word sequences. The phrase "the cat sat" would override
+"the cap sat" due to its higher frequency in training data.
+
+Connectionist Temporal Classification (CTC) aligns variable-length audio with fixed text outputs,
+handling speech rate variations by collapsing repeated characters (e.g., converting "ssssat" to "sat").
+Attention-based decoders refine this by focusing computational resources on acoustically ambiguous segments,
+similar to how humans re-listen to mumbled words in conversation.
+
+\subsection{Contextual Postprocessing}
+Raw transcriptions lack punctuation and capitalization, so STT systems apply rules inferred from audio prosody.
+A sustained pause might insert a comma, while rising pitch at sentence end adds a question mark.
+Domain-specific dictionaries further refine outputs --- medical STT systems might prioritize "metacarpal" over
+"meta carpal" based on context, reducing homophone errors.
+
+Modern implementations optimize for real-world use through edge computing, where processing occurs locally
+on smartphones rather than cloud servers, ensuring privacy for sensitive conversations.
+Open-source toolkits like Mozilla DeepSpeech democratize development, allowing customization for niche accents
+or specialized vocabularies (e.g., transcribing technical jargon in engineering lectures).
+
+\subsection{Rust Trait}
+A trait was defined in Rust with a single function \texttt{transcribe} that accepts a \texttt{Bytes} parameter and returns a \texttt{String} result.
 \begin{minted}{rust}
 pub trait TranscriptionService: Send + Sync {
     async fn transcribe(&self, audio: &Bytes) -> Result<String>;
+}
+\end{minted}
+
+\subsection{Whisper}
+OpenAI Whisper provides speech recognition through a transformer model trained on
+680,000 hours of multilingual web data. Its architecture processes audio as
+log-Mel spectrograms --- matrices representing sound frequency intensity over 25ms windows ---
+which preserve phonetic distinctions better than raw waveforms. The spectrogram
+generation applies triangular filters spaced according to Mel scale, approximating
+human hearing sensitivity across 80 frequency bands.
+
+A 1.5-billion parameter transformer encoder-decoder structure then maps these
+spectrograms to text tokens. Encoder layers create latent representations through
+multi-head self-attention, identifying relationships between distant phonemes
+(e.g., connecting verbs to their subjects across clauses). The decoder generates
+text autoregressively, using cross-attention to align phoneme patterns with
+likely word sequences --- critical for distinguishing homophones like "write" and "right"
+through surrounding context.
+
+Whisper's training regimen combines weakly supervised learning from noisy web captions
+with pseudo-label refinement. During inference, beam search with length normalization
+balances transcription accuracy and fluency, while temperature sampling introduces
+controlled randomness for non-deterministic outputs. The model handles code-switching
+by jointly training on 96 languages, dynamically weighting language-specific token
+distributions based on spectral cues.
+
+Integration via the whisper-rs Rust binding processes audio through non-overlapping
+30-second chunks using sequential windowing:
+
+\begin{minted}{rust}
+pub struct LocalWhisperClient {
+    context: Arc<WhisperContext>,
+}
+
+impl LocalWhisperClient {
+    pub fn new(model: impl Into<String>, use_gpu: bool) -> Result<Self> {
+        let mut params = WhisperContextParameters::default();
+        params.use_gpu = use_gpu;
+        let context = Arc::new(WhisperContext::new_with_params(&model.into(), params)?);
+        Ok(Self { context })
+    }
 }
 \end{minted}
 
