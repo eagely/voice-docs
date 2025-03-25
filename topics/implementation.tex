@@ -36,7 +36,8 @@ unsafe impl<T> Sync for UnsafeSendSync<T> {}
 unsafe impl<T> Send for UnsafeSendSync<T> {}
 \end{minted}
 
-This approach allowed the system to function temporarily by bypassing Rust's concurrency guarantees, but it was inherently risky and only used in production for a single day. The unsafe implementation was a stopgap measure until a more robust solution could be developed.
+This approach allowed the system to function temporarily by bypassing Rust's concurrency guarantees, but it was inherently risky and only used in production for a single day. 
+The unsafe implementation was a stopgap measure until a more robust solution could be developed.
 
 \subsubsection{Final Implementation: Isolation of Synchronous Recording}
 The final implementation addressed the safety concerns by isolating the synchronous CPAL stream operation into a dedicated synchronous thread, separate from the async interface.
@@ -44,7 +45,7 @@ The dedicated thread continuously captures audio samples from CPAL and writes th
 Access to the buffer is synchronized using a mutex, and an atomic counter keeps track of the total number of samples recorded.
 
 The asynchronous \texttt{LocalRecorder} struct implements the \texttt{RecordingService} trait without directly accessing the CPAL stream.
-Instead, it interacts solely with the shared state—the mutex-protected ring buffer and atomic counter—to determine which audio data segments should be returned.
+Instead, it interacts solely with the shared state --- the mutex-protected ring buffer and atomic counter—to determine which audio data segments should be returned.
 Error propagation is handled by transmitting any errors from the synchronous CPAL thread to the asynchronous interface via a Tokio mpsc channel.
 This design ensures asynchronous methods can detect and return relevant errors without violating Rust's safety constraints.
 
@@ -60,15 +61,14 @@ which isolates vocal frequencies by subtracting non-speech patterns (e.g., wind 
 Normalization then stabilizes volume spikes, ensuring whispers and shouts are processed uniformly.
 Finally, feature extraction converts the cleaned audio into machine-readable numerical data.
 
-Mel Frequency Cepstral Coefficients (MFCCs) are widely used for this purpose ---  they mathematically represent
+Mel Frequency Cepstral Coefficients (MFCCs) are widely used for this purpose --- they mathematically represent
 the "shape" of speech by encoding pitch, tone, and rhythm into a compact vector.
 Alternatively, spectrograms visualize audio as heatmaps of frequency intensity over time,
 allowing convolutional neural networks to treat speech as a spatial pattern.
 
 \subsection{Neural Network Analysis}
 Preprocessed audio enters a neural network trained to map acoustic features to linguistic units.
-Recurrent neural networks (RNNs), particularly long short-term memory (LSTM) variants, excel here
-—--
+Recurrent neural networks (RNNs), particularly long short-term memory (LSTM) variants, excel here ---
 they process audio chronologically, maintaining memory of prior sounds to interpret context
 (e.g., distinguishing "ice cream" from "I scream" through syllable relationships).
 
