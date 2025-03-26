@@ -5,7 +5,7 @@
 The initial implementation of the backend service was developed in Kotlin using the Spring Boot framework\footnote{Spring Framework \cite{spring}},
 a Java-based platform designed to provide foundational infrastructure for web applications.
 The service featured a prototype REST endpoint accessible at \texttt{http://localhost:8080/process},
-which accepted textual input as an interim solution prior to the integration of audio processing capabilities.
+which accepted textual input as an interim solution prior to the integration of audio-processing capabilities.
 This endpoint utilized pattern-matching logic to direct weather-related queries to a dedicated weather service,
 while all other queries were processed using the GPT-4 language model.
 
@@ -36,7 +36,7 @@ unsafe impl<T> Sync for UnsafeSendSync<T> {}
 unsafe impl<T> Send for UnsafeSendSync<T> {}
 \end{minted}
 
-This approach allowed the system to function temporarily by bypassing Rust's concurrency guarantees, but it was inherently risky and only used in production for a single day. 
+This approach allowed the system to function temporarily by bypassing Rust's concurrency guarantees, but it was inherently risky and only used in production for a single day.
 The unsafe implementation was a stopgap measure until a more robust solution could be developed.
 
 \subsubsection{Final Implementation: Isolation of Synchronous Recording}
@@ -45,7 +45,7 @@ The dedicated thread continuously captures audio samples from CPAL and writes th
 Access to the buffer is synchronized using a mutex, and an atomic counter keeps track of the total number of samples recorded.
 
 The asynchronous \texttt{LocalRecorder} struct implements the \texttt{RecordingService} trait without directly accessing the CPAL stream.
-Instead, it interacts solely with the shared state --- the mutex-protected ring buffer and atomic counter—to determine which audio data segments should be returned.
+Instead, it interacts solely with the shared state --- the mutex-protected ring buffer and atomic counter --- to determine which audio data segments should be returned.
 Error propagation is handled by transmitting any errors from the synchronous CPAL thread to the asynchronous interface via a Tokio mpsc channel.
 This design ensures asynchronous methods can detect and return relevant errors without violating Rust's safety constraints.
 
@@ -56,7 +56,7 @@ The workflow progresses sequentially, transforming raw sound waves into structur
 
 \subsection{Audio Preprocessing}
 Raw audio recordings contain background noise and volume inconsistencies that obscure speech signals.
-To address this, preprocessing applies noise reduction algorithms, such as spectral subtraction,
+To address this, preprocessing applies noise-reduction algorithms, such as spectral subtraction,
 which isolates vocal frequencies by subtracting non-speech patterns (e.g., wind or keyboard clicks).
 Normalization then stabilizes volume spikes, ensuring whispers and shouts are processed uniformly.
 Finally, feature extraction converts the cleaned audio into machine-readable numerical data.
@@ -102,6 +102,7 @@ or specialized vocabularies (e.g., transcribing technical jargon in engineering 
 
 \subsection{Rust Trait}
 A trait was defined in Rust with a single function \texttt{transcribe} that accepts a \texttt{Bytes} parameter and returns a \texttt{String} result.
+
 \begin{minted}{rust}
 pub trait TranscriptionService: Send + Sync {
     async fn transcribe(&self, audio: &Bytes) -> Result<String>;
@@ -113,7 +114,7 @@ OpenAI Whisper provides speech recognition through a transformer model trained o
 680,000 hours of multilingual web data. Its architecture processes audio as
 log-Mel spectrograms --- matrices representing sound frequency intensity over 25ms windows ---
 which preserve phonetic distinctions better than raw waveforms. The spectrogram
-generation applies triangular filters spaced according to Mel scale, approximating
+generation applies triangular filters spaced according to the Mel scale, approximating
 human hearing sensitivity across 80 frequency bands.
 
 A 1.5-billion parameter transformer encoder-decoder structure then maps these
@@ -131,7 +132,7 @@ controlled randomness for non-deterministic outputs. The model handles code-swit
 by jointly training on 96 languages, dynamically weighting language-specific token
 distributions based on spectral cues.
 
-Integration via the whisper-rs Rust binding processes audio through non-overlapping
+Integration via the whisper-rs Rust binding processes audio in non-overlapping
 30-second chunks using sequential windowing:
 
 \begin{minted}{rust}
@@ -149,9 +150,13 @@ impl LocalWhisperClient {
 }
 \end{minted}
 
-\subsection{Parsing}
-Once the audio is transcribed into text, it is passed to a parser.
-The parser can be a simple pattern matcher or an advanced LLM service such as Rasa.
+\section{Parsing}
+Parsing refers to the transformation of transcribed audio into structured, machine-interpretable data.
+This can be achieved through either rule-based approaches, such as pattern matching,
+or more advanced methods that leverage natural language understanding techniques, such as those supported by frameworks like Rasa.
+
+\subsection{Rust Trait}
+A parser receives a string input after the transcription process and returns a structured \texttt{Action}.
 
 \begin{minted}{rust}
 pub trait ParsingService: Send + Sync {
@@ -159,7 +164,8 @@ pub trait ParsingService: Send + Sync {
 }
 \end{minted}
 
-This service accepts a string input, which it receives after the transcription process, and returns a structured \texttt{Action}.
+\subsection{Action}
+An \texttt{Action} is a combination of intent and entities, while also storing the raw text to enable proper error handling.
 
 \begin{minted}{rust}
 pub struct Action {
@@ -169,9 +175,19 @@ pub struct Action {
 }
 \end{minted}
 
-An \texttt{Action} is a combination of intent and entities.
 The intent represents the action that the parser determines should be performed, along with a confidence level.
-This is particularly important for natural language processors using LLMs, where results are probabilistic rather than deterministic.
+This is particularly important for natural language processors using probabilistic models,
+where results are not deterministic.
+The confidence level is wrapped in an \texttt{Option} to allow for scenarios where confidence is not applicable,
+such as with a pattern-matching parser or a geopolitical entity extractor in an NLU-based processor.
+
+Entities function similarly to variables. In a deterministic parser, they are straightforward variables,
+while an NLU parser extracts what it deems the most likely desired variable,
+such as the location in a weather request or the brightness level for adjusting lights.
+When using an NLU parser, entities are also paired with a confidence level.
+This confidence is typically very high (around 99.99\%), but it is wrapped in an \texttt{Option}
+to account for scenarios where confidence is not applicable,
+such as with a pattern-matching parser or a geopolitical entity extractor in a rule-based pipeline.
 
 \begin{minted}{rust}
 pub struct Intent {
@@ -181,29 +197,37 @@ pub struct Intent {
 
 pub enum IntentKind {
     LlmQuery,
+    SetTimer,
     WeatherQuery,
+    DecreaseVolume,
+    IncreaseVolume,
+    SetVolume,
+    CloseWindow,
+    MaximizeWindow,
+    MinimizeWindow,
+    SwitchWorkspace,
+    ShowDesktop,
+    Other(String),
 }
 \end{minted}
 
-Entities function similarly to variables. In a pattern-matching parser, they are straightforward variables,
-while an LLM parser extracts what it deems the most likely desired variable,
-such as the location in a weather request or the brightness level for adjusting lights.
-When using an LLM parser, entities are also paired with a confidence level.
-This confidence is typically very high (around 99.99\%), but it is wrapped in an \texttt{Option}
-to account for scenarios where confidence is not applicable,
-such as with a pattern-matching parser or a geopolitical entity extractor in an LLM processor.
+\subsection{Pattern Matching}
+A rule-based parser was implemented using Rust's \texttt{match} statement.
+This parser identifies predefined patterns in the input string --- such as detecting the keyword "weather" followed by a location.
+Upon matching a recognized pattern, the parser returns an \texttt{Action} containing an associated \texttt{Intent}
+and, where applicable, one or more \texttt{Entity} values.
 
-\begin{minted}{rust}
-pub struct Entity {
-    pub entity: String,
-    pub value: String,
-    pub confidence: Option<f32>,
-}
-\end{minted}
+\subsection{NLU-Based Parser}
+To enable more flexible and robust language understanding,
+an NLU-based parser was implemented using the Rasa framework\footnote{Rasa \cite{rasa}}.
+Rasa allows for training custom natural language understanding models on domain-specific datasets.
+In this implementation, the model was trained on approximately 100 example queries per intent,
+including utterances such as "weather in New York City" and "what is the weather like in London?".
+For entity extraction, specifically geographic locations,
+the system integrates spaCy's geopolitical entity recognizer\footnote{spaCy \cite{spacy}},
+which uses statistical models trained on labeled data to identify named entities in the input text.
 
-\section{Individual Features}
-
-\subsection{Geocoding}
+\section{Geocoding}
 The geocoding service is an internal component that converts textual location names into geographical coordinates, but it is not available to the user.
 
 \begin{minted}{rust}
@@ -228,7 +252,7 @@ These coordinates serve as input parameters for subsequent \texttt{WeatherServic
 The API processes natural language location descriptions and returns precise latitude and longitude values along with a formatted location name.
 This formatted name is later used as a display name when presenting weather response data to the client.
 
-\subsection{Weather}
+\section{Weather}
 The weather service retrieves weather data using geographical coordinates:
 
 \begin{minted}{rust}
@@ -262,8 +286,8 @@ Each API request requires mandatory parameters including latitude, longitude, an
 These optional parameters allow customization of the response through \texttt{units} (standard, metric, or imperial measurements),
 \texttt{exclude} (response field filtering), and \texttt{lang} (response language selection).
 
-\subsection{Timers}
-Timers were first implemented in-memory using a tokio thread and by simply sleeping for the duration of the timer.
+\section{Timers}
+Timers were first implemented in-memory using a Tokio thread and by simply sleeping for the duration of the timer.
 
 \begin{minted}{rust}
 pub trait TimerService: Send + Sync {
@@ -271,4 +295,4 @@ pub trait TimerService: Send + Sync {
 }
 \end{minted}
 
-Each timer requires an \texttt{std::time::Duration} and a description, where the description is what is said or shown when the timer rings.
+Each timer requires an \texttt{std::time::Duration} and a description, where the description specifies what is said or shown when the timer rings.
