@@ -5,8 +5,8 @@ The result of the project ended up being a fully operational voice assistant wit
 The hardware frontend contains a 3D-printed case covering a Raspberry Pi and a 10 inch HDMI display;
 the Raspberry Pi is powered by either a DC jack or a battery, depending on the users preference ---
 this is realized using a custom printed circuit board and a battery management system.
-The custom PCB connects to the Raspberries GPIO pins and provides a more accessible alternative to the displays touchscreen,
-that being a reconding button, which when pressed, can start or stop the recording of a query,
+The custom PCB connects to the Raspberry Pi's GPIO pins and provides a more accessible alternative to the displays touchscreen,
+that being a recording button, which when pressed, can start or stop the recording of a query,
 as well as a wake word switch --- this allows the user to enable or disable wake word detection (and therefore hands-free usage) using a button.
 There is also an RGB led on the PCB, which shows different color codes when errors occur, albeit any errors
 that occur during processing will be made known to the user via the voice assistant output.
@@ -42,3 +42,15 @@ The user can also configure a setting on the client (in the reference frontend a
 which sends a \texttt{config table.key=value} command to the server, where table, key, and value are some setting that the user configured.
 Finally, the user can also toggle wake word detection, which sends a \texttt{toggle wake word} command to the server and either enables or disables
 wake word detection.
+
+\section{Final Discussion}
+The project can be considered complete --- all required features have been successfully implemented.
+Future enhancements could focus on expanding the feature set and improving the user experience when interacting with the frontend.
+Moreover the audio recording system should be overhauled, possibly by moving it back to the frontend;
+Timers are also not perfect yet, as they do not have a ringtone.
+Additional speech-to-text models may also be explored to improve accuracy and response time.
+
+As a note to self for the future:
+More extensive testing is a generally a good idea --- testing manually wastes a lot of precious time
+and hunting bugs when automated tests could have discovered them automatically should not be neccessary.
+Usability studies should be conducted to better understand how the system performs in real-world scenarios, while interacting with real users.

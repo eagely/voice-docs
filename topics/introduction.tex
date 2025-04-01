@@ -2,27 +2,28 @@
 \renewcommand*\chapterpagestyle{scrheadings}
 \chapter{Introduction}
 
-This project aims to deliver a versatile voice assistant implementation
-compatible with various frontends. One such frontend,
-developed concurrently with this project,
-leverages the Qt framework\footnote{Qt Framework \cite{qt}}
-to provide a user-friendly interface.
+This project aims to deliver a versatile voice assistant implementation,
+offering users the ability to perform various everyday tasks hands-free
+and with little effort.
 
 \section{Background and Motivation}
-Voice assistants have seen steady growth in adoption,
-yet they are often perceived as supplementary tools
-rather than essential components of productivity.
-This project addresses this limitation by developing a voice assistant solution
-that enhances user workflows while maintaining minimal intrusiveness.
-The implementation extends traditional voice assistant capabilities
-with advanced features, including workspace management and seamless speech-to-text integration.
+While voice assistants have rapidly gained popularity and their capabilities improve with each new release,
+many people still associate them with poor speech-to-text performance and frequent requests for repetition.
+This project aims to address these limitations and develop a user-friendly voice assistant solution,
+which is production-ready and able to greatly enchance the user's workflow while remaining unobtrusive.
+Furthermore, it should expand on the feature set of traditional voice assistans,
+offering workspace management on Unix-like systems.
 
 \section{Project Goals}
 \begin{itemize}
-    \item Achieving efficient processing with a target response latency of 1 second.
-    \item Seamless integration into Linux window managers, enabling users to control their systems using voice commands.
-    \item Support for both explicit recording and voice activation functionalities.
-    \item Configurability, allowing users to select preferred algorithms, APIs, and output formats.
+  \item Efficient processing of queries with a goal of minimal response latency, optimally faster than a second.
+  \item Integration into window managers on Unix-like systems, allowing users to control their desktop using voice commands.
+  \item Allowing the user to activate audio recording by either pressing a button, or saying a wake word.
+  \item Extensive configuration, allowing the user to pick and choose every detail of the system.
 \end{itemize}
 
 \section{Naming} \label{sec:naming}
+Any modern voice assistant should have a name and a wake word it reacts to;
+because of the later implementation of Rust in the project,
+"Ferris" was chosen as the name of the voice assistant, referencing
+the mascot of the Rust programming language which goes by the same name.
