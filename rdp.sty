@@ -5,7 +5,7 @@
 \RequirePackage[backend=bibtex,style=numeric,sorting=none]{biblatex}
 \RequirePackage[colorlinks=true,
 linkcolor=black,
-filecolor=magenta,      
+filecolor=magenta,
 urlcolor=blue,
 citecolor=blue,
 pdftex,
@@ -17,6 +17,10 @@ plainpages=false]
 \RequirePackage{listings}
 \addbibresource{references.bib}
 \NeedsTeXFormat{LaTeX2e}
+
+\newcommand{\currentauthor}[1]{
+  \ofoot{\scriptsize#1}
+}
 
 \def\@school{}
 \newcommand{\school}[1]{\gdef\@school{#1}}
@@ -160,10 +164,10 @@ The undersigned candidates have chosen to prepare a diploma thesis with the foll
         \candidatetopiclist
     \end{itemize}
 
-    The candidates acknowledge that the diploma thesis must be worked on and completed independently and outside of class time, although class results may be incorporated if appropriately cited as such. 
+    The candidates acknowledge that the diploma thesis must be worked on and completed independently and outside of class time, although class results may be incorporated if appropriately cited as such.
     \newline
     \newline
-    The complete diploma thesis must be submitted digitally and in two printed copies to the supervising teacher no later than \textbf{\@handindate}.
+    The complete diploma thesis must be submitted digitally and in a printed copy to the supervising teacher no later than \textbf{\@handindate}.
     \newline
     \newline
     The candidates further acknowledge that cancellation of the diploma thesis is not possible.
@@ -206,5 +210,36 @@ The undersigned candidates have chosen to prepare a diploma thesis with the foll
     \timeentriesnext
     \multicolumn{3}{c}{} \\\hline
     \multicolumn{2}{|l|}{\textbf{Total}} & \textbf{\thetotalHours} \\\hline
+  \end{tabular}
+}
+
+\newcommand{\timeentriescurrentHW}{}
+\newcommand{\timeentriesnextHW}{}
+\newcounter{totalHoursHW}
+\newcommand{\addtimeentryHW}[3]{
+  \ifnum#1<36
+    \g@addto@macro\timeentriesnextHW{%
+      #1 & #2 & #3 \addtocounter{totalHoursHW}{#3}\\\hline
+    }
+  \else
+    \g@addto@macro\timeentriescurrentHW{%
+      #1 & #2 & #3 \addtocounter{totalHoursHW}{#3}\\\hline
+    }
+  \fi
+}
+
+\newcommand{\printtimeentriesHW}{
+  \setcounter{totalHoursHW}{0}
+  \begin{tabular}{|c|l|r|}
+    \hline
+    \multicolumn{3}{|c|}{2024} \\\hline
+    \textbf{Week} & \textbf{Task Description} & \textbf{Hours} \\\hline
+    \timeentriescurrentHW
+    \multicolumn{3}{c}{} \\\hline
+    \multicolumn{3}{|c|}{2025} \\\hline
+    \textbf{Week} & \textbf{Task Description} & \textbf{Hours} \\\hline
+    \timeentriesnextHW
+    \multicolumn{3}{c}{} \\\hline
+    \multicolumn{2}{|l|}{\textbf{Total}} & \textbf{\thetotalHoursHW} \\\hline
   \end{tabular}
 }
