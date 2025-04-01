@@ -137,6 +137,26 @@ A decision had to be made: Is it better to wrap the local recording implementati
 Ultimately, while blocking the asynchronous remote recorder would be much easier, it would also heavily slow down a system with multiple clients connected,
 so the decision was made to turn the API of the local recorder asynchronous.
 
+\begin{figure}[H]
+  The following flowchart demonstrates the new system design, with audio recording and wake word detection on the backend:
+  \begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{assets/audio-new}
+    \caption{New audio system}
+    \label{chart:audio-new}
+  \end{figure}
+\end{figure}
+
+With the new system, the recording happens on the backend, as does the wake word detection ---
+to achieve this, a recording microservice was created, using the following trait:
+
+\begin{minted}{rust}
+pub trait RecordingService {
+    async fn start(&self) -> Result<()>;
+    async fn stop(&self) -> Result<Bytes>;
+}
+\end{minted}
+
 \subsection{Local Recorder Implementation}
 CPAL\footnote{Cross-Platform Audio Library \cite{cpal}} is a Rust library that provides easy access to the audio interface of the system,
 allowing one to record audio from Rust code. Using Hound\footnote{Hound \cite{hound}}, the output of CPAL could be encoded into a WAV file
@@ -157,19 +177,20 @@ unsafe impl<T> Send for UnsafeSendSync<T> {}
 
 \subsection{Isolation of Synchronous Recording}
 The day after implementing the \texttt{UnsafeSendSync} wrapper for CPAL's \texttt{Stream}, it was decided to simply isolate the \texttt{Stream}
-into its own dedicated synchronous thread, separate from the async interface, and communicate using a shared buffer, which could safely be sent across threads. 
+into its own dedicated synchronous thread, separate from the async interface, and communicate using a shared buffer, which could safely be sent across threads.
 This buffer was a 10-minute long ring buffer, which means that after 10 minutes of recording, it would overwrite the first samples of the recording.
 10 minutes was chosen as the cut-off because it seems unrealistic that someone would talk for more than 10 minutes straight to a voice assistant.
 Access to this buffer is synchronized using a mutex, and an atomic counter that keeps track of the total number of samples that have been recorder thus far.
 Errors that are thrown inside the synchronous thread are sent to the asynchronous interface via a Tokio multi-producer single-consumer channel and propagated upstream.
 
 \subsection{Wake Word Detection}
-Wake words enable hands-free activation of voice assistants through specific phrases.
-Commercial systems commonly use phrases like "Hey Siri" or "Okay Google".
-The implementation utilizes the Porcupine library\footnote{Porcupine \cite{porcupine}} for wake word detection.
-"Ferris" was selected as the wake word, referencing the Rust mascot.
-
-The detection process is implemented through several code components:
+A wake word is usually called the "name" of the voice assistant,
+common examples are "Hey Siri" or "Okay Google";
+a wake word allows hands-free activation of a voice assistant,
+which makes them a lot more pleasant to use.
+This project utilizes the Porcupine\footnote{Porcupine \cite{porcupine}} library for wake word detection,
+and "Ferris" as the wake word, which is the name of the voice assistant, as mentioned in \ref{sec:naming}.
+The detection process is implemented in the following code:
 
 \begin{minted}{rust}
 fn process_audio_data(
@@ -182,8 +203,8 @@ fn process_audio_data(
 \end{minted}
 
 This function accepts raw audio data and maintains a frame buffer.
-A Porcupine detector instance and atomic flags enable state management.
-These parameters allow audio processing and recording state control.
+Two atomic booleans --- which are thread-safe wrappers for booleans ---
+namely \texttt{wake\_word\_enabled} and \texttt{is\_recrding} are passed to this function.
 
 \begin{minted}{rust}
 for &sample in data {
@@ -192,9 +213,9 @@ for &sample in data {
 }
 \end{minted}
 
-The previously floating-point audio samples are converted to 16-bit integers,
-because Porcupine requires 16-bit Pulse Code Modulation (PCM),
-which uses a fixed-point representation with 16-bit precision.
+Audio is stored in floating point samples, which are an easy format
+to use for WAV files. These samples need to be converted to 16-bit integers,
+because Porcupine expects 16-bit, pulse code modulated signals.
 Each converted sample is added to the frame buffer for processing.
 
 \begin{minted}{rust}
@@ -202,8 +223,8 @@ if frame_buffer.len() >= porcupine.frame_length() as usize {
     if let Ok(keyword_index) = porcupine.process(frame_buffer) {
 \end{minted}
 
-When the buffer reaches sufficient size, Porcupine processes it.
-The process method returns a keyword index upon successful detection.
+When the buffer has reached a sufficient size, it is processed by Porcupine;
+the process method returns a keyword index which can then be used to determine what the outcome was.
 
 \begin{minted}{rust}
 if keyword_index >= 0 && wake_word_enabled.load(Ordering::Relaxed) {
@@ -212,36 +233,40 @@ if keyword_index >= 0 && wake_word_enabled.load(Ordering::Relaxed) {
 frame_buffer.clear();
 \end{minted}
 
-A non-negative keyword index indicates successful wake word detection.
-If detection is enabled, the system transitions to recording mode.
+A non-negative keyword index means that a wake word was successfully detected.
+If wake word detection is enabled, the system transitions to recording mode.
 The frame buffer is cleared afterward to prepare for the next batch.
 This cycle continues, allowing continuous monitoring for wake word occurrences.
 
 \section{Speech-to-Text Transcription}
 
 \subsection{Audio Preprocessing}
-Raw audio often contains noise and inconsistent volume levels.
-Preprocessing techniques, such as spectral subtraction, isolate vocal frequencies and reduce background noise.
-Normalization ensures volume consistency.
-The cleaned audio is then transformed into numerical features
-using methods like the Mel Frequency Cepstrum\footnote{Mel Frequency Cepstral \cite{mfc}} or spectrograms.
+Raw audio is often filled with noise and inconsistent volume levels.
+Preprocessing techniques --- like spectral subtraction --- can help isolate vocal frequencies and reduce background noise.
+Volume is then normalized to a consistent value.
+The cleaned up audio is then transformed into numerical features\footnote{Feature in machine learning \cite{feature}}
+using methods such as the Mel Frequency Cepstrum\footnote{Mel Frequency Cepstral \cite{mfc}} or spectrograms.
 
 \subsection{Neural Network Analysis}
-Preprocessed features are input into neural networks trained to map acoustic signals to text.
-Recurrent neural networks\footnote{Recurrent Neural Network \cite{rnn}},
-particularly Long short-term memory\footnote{Long short-term memory \cite{lstm}} variants, process audio sequentially, retaining context over time.
-Transformers, using self-attention\footnote{Self-attention \cite{self-attention}}, model relationships across the entire sequence in parallel.
-Hybrid models often combine convolutional layers for phoneme recognition with transformers for broader interpretation.
+The preprocessed features are then input into neural networks trained on thousands of hours of voice data,
+which map acoustic signals to text.
+There are two main types of neural networks used for audio processing,
+those being recurrent neural networks\footnote{Recurrent Neural Network \cite{rnn}},
+particularly long short-term memory\footnote{Long short-term memory \cite{lstm}} variants,
+which process audio sequentially, retaining context over time,
+as well as transformers, using self-attention\footnote{Self-attention \cite{self-attention}},
+which in turn model relationships across the entire sequence in parallel.
+Hybrid models can combine convolutional layers for phoneme recognition with transformers for better and broader interpretation.
 
 \subsection{Decoding Ambiguity}
-Neural network outputs are inherently probabilistic, which introduces ambiguity in the transcribed text.
-To resolve this uncertainty, decoding algorithms integrate statistical language models
-that leverage contextual information to select the most likely transcription.
+Neural network outputs are inherently non-deterministic, which introduces some amount of ambiguity in the transcribed text.
+Decoding algorithms help resolve some uncertainty, integrating statistical language models
+that leverage context to select the most likely transcription.
 When dealing with variable-length inputs and timing discrepancies,
-Connectionist Temporal Classification \footnote{Connectionist Temporal Classification \cite{ctc}}
-is employed to collapse repeated predictions and blank labels, providing a preliminary aligned sequence.
+connectionist temporal classification \footnote{Connectionist Temporal Classification \cite{ctc}}
+is applied to collapse repeated predictions and blank sections, which provides a preliminary aligned sequence.
 This output is then further refined by attention-based models,
-which selectively focus on ambiguous segments to produce a more coherent and accurate final transcription.
+which focus on ambiguous segments to provide a more accurate and coherent end result.
 
 \subsection{Rust Trait}
 The transcription service is defined via a Rust trait:
@@ -253,11 +278,19 @@ pub trait TranscriptionService: Send + Sync {
 \end{minted}
 
 \subsection{OpenAI Whisper}
-OpenAI Whisper employs a transformer model trained on 680,000 hours of multilingual data.
-Audio is converted into log-Mel spectrograms, which encode phonetic features.
-A transformer encoder-decoder processes these to produce text.
+OpenAI Whisper is an open-source implementation of automatic speech recognition.
+The following is a description by OpenAI\footnote{OpenAI Whisper \cite{whisper}}.
 
-Integration in Rust uses \texttt{whisper-rs}:
+"""Whisper is an automatic speech recognition (ASR) system trained on 680,000 hours
+of multilingual and multitask supervised data collected from the web.
+We show that the use of such a large and diverse dataset leads to improved robustness to accents,
+background noise and technical language.
+Moreover, it enables transcription in multiple languages,
+as well as translation from those languages into English.
+We are open-sourcing models and inference code to serve as a foundation for building useful applications
+and for further research on robust speech processing."""
+
+Integration in Rust uses the whisper-rs library:
 
 \begin{minted}{rust}
 pub struct LocalWhisperClient {
@@ -274,16 +307,20 @@ impl LocalWhisperClient {
 }
 \end{minted}
 
+This code instantiates a new \texttt{LocalWhisperClient}, using all default parameters besides enabling GPU processing
+if the user has configured it to be enabled.
+The GPU is much faster than the CPU when running machine learning models, hence why it can be used.
+
 \section{Parsing}
 Parsing is the process of analyzing text input and converting it
-into a structured representation of its meaning --- in order to determine which actions should be performed.
-This can be accomplished either through rule-based methods
-or via Natural Language Understanding (NLU) approaches.
+into a structured format representing its meaning, or the intent that the user most likely had ---
+in order to determine which actions should be performed.
+This can be accomplished using natural language processing,
+be that a simple rule-based parser or a more advanced natural language understanding (NLU) machine learning system.
 Rule-based parsing involves matching specific patterns in the input ---
-using techniques such as regular expressions or Rust's \texttt{match} statement ---
-to extract structured data.
-In contrast, NLU-based parsing leverages machine learning models,
-often using transformer architectures, to detect intent and extract entities from natural language.
+using techniques such as regular expressions or Rust's \texttt{match} statement --- to extract structured data.
+In contrast, NLU-based parsing leverages machine learning models, which can be described to actually "understand"
+the underlying natural language, hence being able to provide much better results when it comes to intent parsing.
 
 \subsection{Action}
 An \texttt{Action} encapsulates the parsed result, including intent, entities, and the original input text:
@@ -296,7 +333,9 @@ pub struct Action {
 }
 \end{minted}
 
-The intent and entities may optionally carry confidence scores:
+An IntentKind is the actual intent that the parser thinks the user wants to perform, while the confidence
+is the probability of this intent being correct. Since a rule-based parser is a deterministic pattern matching function,
+it does not have a confidence score, hence why \texttt{confidence} is wrapped in an \texttt{Option}.
 
 \begin{minted}{rust}
 pub struct Intent {
@@ -322,27 +361,44 @@ pub enum IntentKind {
 
 \subsection{Pattern Matching}
 A rule-based parser was implemented using Rust's \texttt{match} statement.
-It identified known patterns in user input, returning corresponding intents and entities in the form of an \texttt{Action}.
+It operates very similar to the previosly shown Kotlin \texttt{when} statement, detecting words and patterns in the input.
+Below is a simplified demonstration of this \texttt{match} statement.
+
+\begin{minted}{rust}
+match input_lower.as_str() {
+    x if x.contains("close") => CloseWindow
+    x if x.contains("minimize") => MinimizeWindow
+    x if x.contains("maximize") => MaximizeWindow
+    x if x.contains("timer") || x.contains("alarm") => SetTimer
+    x if x.contains("switch") && (x.contains("workspace") || x.contains("desktop")) => SwitchWorkspace
+    x if x.contains("volume") && x.contains("increase") => IncreaseVolume
+    x if x.contains("volume") && x.contains("decrease") => DecreaseVolume
+    x if x.contains("volume") && (x.contains("set") || x.contains("adjust")) => SetVolume
+    x if x.contains("weather") || x.contains("whether") || x.contains("heather") => WeatherQuery
+    _ => LlmQuery
+}
+\end{minted}
 
 \subsection{NLU-Based Parser}
-For more adaptable parsing, an NLU-based solution was implemented using Rasa\footnote{Rasa \cite{rasa}}.
-Only the NLU component was used; dialogue handling was external.
-Text inputs underwent tokenization and feature extraction before being processed by the DIETClassifier,
+An NLU-based solution was implemented using Rasa\footnote{Rasa \cite{rasa}} for more adaptable parsing.
+Rasa offers dialogue handling, however, for this project, only the NLU component is used,
+and dialogue handling may be considered in the future.
+Text inputs are tokenized and undergo feature extraction before being processed by the DIETClassifier,
 a transformer model that performs both intent classification and entity extraction.
 
-Entities were extracted using the BIO tagging scheme, enhanced with spaCy's \texttt{SpacyEntityExtractor}.
-spaCy models performed named entity recognition using statistical techniques trained on corpora such as OntoNotes.
-The final output included the identified intent with a confidence score and a list of labeled entities.
-This output was transformed into an \texttt{Action} object for downstream use.
+Entities are extracted using the BIO tagging scheme\footnote{Inside-outside-beginning tagging \cite{bio}},
+enhanced with spaCy's \texttt{SpacyEntityExtractor}.
+spaCy models perform named entity recognition using statistical techniques trained on corpora such as OntoNotes.
+The final output includes the identified intent with a confidence score and a list of labeled entities.
+This output is then transformed into an \texttt{Action} object for downstream use.
 
 \section{Geocoding}
-The geocoding service translated text-based location names into geographic coordinates.
-It processed \texttt{GeocodeResponse} objects from \texttt{GeocodingService}.
-Each request required latitude, longitude, and an API key, with optional parameters for \texttt{units}, \texttt{exclude}, and \texttt{lang}.
+The geocoding service translates text-based location names into geographic coordinates.
+It processes \texttt{GeocodeResponse} objects from \texttt{GeocodingService}.
+Each request requires latitude, longitude, and an API key, with optional parameters for \texttt{units}, \texttt{exclude}, and \texttt{lang}.
 
 \section{Timers}
-Timers are among the first features associated with a voice assistant,
-making proper implementation essential.
+Timers are among the first features associated with a voice assistant, making proper implementation essential.
 Timer functionality is achieved by spawning a new Tokio task that waits for the specified duration;
 upon expiration, a desktop notification is sent to indicate that the timer has finished.
 
