@@ -17,7 +17,8 @@ thus simplifying system communication without compromising performance.
 
 \section{Spring Boot Prototype}
 The backend was initially developed using Spring Boot, as previously described in \ref{subsec:language-and-framework}.
-The prototype featured a REST endpoint, which was accessible at \texttt{http://localhost:8080/process}.
+The prototype featured a REST endpoint, which would await POST requests and was accessible at \texttt{http://localhost:8080/process}.
+Shown below is the Spring mapping of this endpoint:
 \begin{minted}{kotlin}
 @PostMapping("/process")
 fun process(@RequestBody content: String): Mono<ResponseEntity<String>> {
@@ -78,9 +79,10 @@ enum Result<T, E> {
 And by utilizing its powerful pattern-matching capabilities, this becomes an awesome way to avoid almost all runtime errors
 in a simple and elegant way.
 
-In addition to that, Rust has a very powerful type system and algebraic data types, involving structs, which are similar to classes
-in object-oriented programming languages and are \textit{product types} in type theory terms; Rust also offers enums, which
-are \textit{sum types} in type theory. Structs and enums in Rust are more powerful than in other programming languages,
+Rust features a powerful type system with algebraic data types.
+Its structs (product types) are similar to classes in object‑oriented languages,
+while its enums (sum types) enable expressive pattern matching.
+Structs and enums in Rust are more powerful than in other programming languages,
 as they can hold multiple values, and even named fields, not just singular primitive types.
 Using this concept, the following is possible:
 \begin{minted}{rust}
@@ -118,20 +120,20 @@ to another function without first cloning it. Another feature of the borrow chec
 Any variable is borrowed only until its lifetime expires and any value a variable holds must live
 at least as long as it, otherwise a compile-time error will be thrown.
 
-At first the borrow checker may seem excessively limiting, however, when properly learned and managed,
-it creates an almost perfect guarantee of memory safety and the absence of data racing unless the unsafe keyword is used,
-which allows the developer to bypass Rust's memory safety systems for things that need to be done but inherently cannot be done safely,
-such as writing to a specific register in memory on a microcontroller, which could, for example, control an LED, or set up an interrupt service routine.
-Another example of the unsafe keyword, which was used for this project, is the implementation of \texttt{UnsafeSendSync} for audio recording below.
+At first, the borrow checker may seem excessively limiting;
+however, once properly understood, it provides an almost perfect guarantee of memory safety
+and prevents data races (except when the unsafe keyword is explicitly used).
+Developers sometimes must bypass these safeguards for operations that cannot be done safely ---
+such as writing to a specific register on a microcontroller to control an LED or set up an interrupt service routine.
 
 \section{Audio Recording}
 The original plan for audio recording was to require any frontend implementations to record audio and send raw audio data to the backend.
 Attempts were made to implement this in the reference frontend in Qt/C++, but to no avail --- implementing an audio recorder in Qt
 requires extensive knowledge of the underlying operating system and audio drivers, and the documentation was not complete enough to cover every edge case.
 This led to the idea that audio recording could be a microservice like any other, but it would have to be synchronous, since audio recording
-is inherently a blocking process --- you can not do anything while recording and you can not record twice at the same time using the same device.
-However, one could argue that there may be multiple clients connected that want to use a microservice which records audio remotely,
-on different microphones (such as microphones on smart home nodes), this would again require an asynchronous microservice implementation.
+is inherently a blocking process --- you can not do anything while recording and you cannot record twice at the same time using the same device.
+However, one could argue that if multiple clients --- for example, a collection of smart home nodes, each with their own microphone ---
+wish to use the audio-recording microservice remotely, then an asynchronous implementation would be required.
 The issue was that a microservice uses a Rust trait as its specification, and this trait can not support synchronous and asynchronous implementations simultaneously.
 A decision had to be made: Is it better to wrap the local recording implementation into an asynchronous API, or make the asynchronous implementation blocking.
 Ultimately, while blocking the asynchronous remote recorder would be much easier, it would also heavily slow down a system with multiple clients connected,
@@ -367,14 +369,25 @@ Below is a simplified demonstration of this \texttt{match} statement.
 \begin{minted}{rust}
 match input_lower.as_str() {
     x if x.contains("close") => CloseWindow
+    
     x if x.contains("minimize") => MinimizeWindow
+
     x if x.contains("maximize") => MaximizeWindow
+
     x if x.contains("timer") || x.contains("alarm") => SetTimer
-    x if x.contains("switch") && (x.contains("workspace") || x.contains("desktop")) => SwitchWorkspace
+
+    x if x.contains("switch") && (x.contains("workspace")
+    || x.contains("desktop")) => SwitchWorkspace
+
     x if x.contains("volume") && x.contains("increase") => IncreaseVolume
+
     x if x.contains("volume") && x.contains("decrease") => DecreaseVolume
-    x if x.contains("volume") && (x.contains("set") || x.contains("adjust")) => SetVolume
-    x if x.contains("weather") || x.contains("whether") || x.contains("heather") => WeatherQuery
+
+    x if x.contains("volume") && (x.contains("set")
+    || x.contains("adjust")) => SetVolume
+
+    x if x.contains("weather") || x.contains("whether")
+    || x.contains("heather") => WeatherQuery
     _ => LlmQuery
 }
 \end{minted}
