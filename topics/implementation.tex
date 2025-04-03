@@ -1,19 +1,14 @@
 \cleardoubleemptypage
 \renewcommand*\chapterpagestyle{scrheadings}
 
-\chapter{Implementation}
+\chapter{Implementation of the Software Backend}
 
-\subsection{Communication}
-Communication between frontend and backend constitutes a critical architectural consideration.
-Several communication paradigms were trialed during development.
-Initially, HTTP with plain text was employed under the assumption that the frontend would handle audio recording.
-However, attempts to implement this in Qt revealed numerous complications.
-Consequently, a backend microservice for audio recording was introduced, rendering HTTP suboptimal.
-A shift was made to raw TCP, which incurs less overhead and permits efficient full-duplex transmission of brief commands.
-Despite its efficiency, raw TCP with a binary protocol for text, audio, commands, and configurations proved cumbersome.
-Therefore, a final transition to WebSockets was implemented.
-WebSockets, essentially a TCP wrapper with structured headers, offer a clean means of distinguishing data types,
-thus simplifying system communication without compromising performance.
+\section{Communication}
+Communication between client and server is important to get right;
+Initially, HTTP was used with plain text messages, under the assumption that the frontend would record audio.
+The frontend should record audio and send it to an HTTP endpoint, where it can be further processed ---
+although the first implementation of the backend had an HTTP post endpoint expecting plain text,
+to ensure that the team can iterate quickly and to keep it simple at first.
 
 \section{Spring Boot Prototype}
 The backend was initially developed using Spring Boot, as previously described in \ref{subsec:language-and-framework}.
@@ -101,7 +96,7 @@ struct Bar {
 }
 \end{minted}
 
-These data types can then be used in \texttt{match} statements, as well is the \texttt{if let} statement
+These data types can then be used in \texttt{match} statements, as well as the \texttt{if let} statement
 for really powerful and fun-to-use pattern matching.
 
 Interfaces are a very common thing in programming languages nowadays ---
@@ -128,8 +123,9 @@ such as writing to a specific register on a microcontroller to control an LED or
 
 \section{Audio Recording}
 The original plan for audio recording was to require any frontend implementations to record audio and send raw audio data to the backend.
-Attempts were made to implement this in the reference frontend in Qt/C++, but to no avail --- implementing an audio recorder in Qt
-requires extensive knowledge of the underlying operating system and audio drivers, and the documentation was not complete enough to cover every edge case.
+Attempts were made to implement this in the reference frontend using Qt/C++, but these efforts were unsuccessful ---
+implementing an audio recorder in Qt requires extensive knowledge of the underlying operating system and audio drivers,
+and the documentation was insufficient to cover every edge case.
 This led to the idea that audio recording could be a microservice like any other, but it would have to be synchronous, since audio recording
 is inherently a blocking process --- you can not do anything while recording and you cannot record twice at the same time using the same device.
 However, one could argue that if multiple clients --- for example, a collection of smart home nodes, each with their own microphone ---
@@ -159,6 +155,13 @@ pub trait RecordingService {
 }
 \end{minted}
 
+\subsection{Protocol Updates}
+With the new audio recording redesign, rapid full-duplex communication was required, making HTTP no longer a viable option.
+While it is technically possible to achieve full-duplex communication using techniques such as Server-Sent Events or WebSockets over HTTP,
+switching to raw TCP proved to be much simpler and more effective.
+Raw TCP communication allows both the server and client to send messages simultaneously ---
+for example, the server could send a response while the client is sending a request to start a new recording.
+
 \subsection{Local Recorder Implementation}
 CPAL\footnote{Cross-Platform Audio Library \cite{cpal}} is a Rust library that provides easy access to the audio interface of the system,
 allowing one to record audio from Rust code. Using Hound\footnote{Hound \cite{hound}}, the output of CPAL could be encoded into a WAV file
@@ -179,17 +182,15 @@ unsafe impl<T> Send for UnsafeSendSync<T> {}
 
 \subsection{Isolation of Synchronous Recording}
 The day after implementing the \texttt{UnsafeSendSync} wrapper for CPAL's \texttt{Stream}, it was decided to simply isolate the \texttt{Stream}
-into its own dedicated synchronous thread, separate from the async interface, and communicate using a shared buffer, which could safely be sent across threads.
+into its own dedicated synchronous thread, separate from the async interface, and communicate using a shared buffer, which could safely be sent across threads./
 This buffer was a 10-minute long ring buffer, which means that after 10 minutes of recording, it would overwrite the first samples of the recording.
 10 minutes was chosen as the cut-off because it seems unrealistic that someone would talk for more than 10 minutes straight to a voice assistant.
 Access to this buffer is synchronized using a mutex, and an atomic counter that keeps track of the total number of samples that have been recorder thus far.
 Errors that are thrown inside the synchronous thread are sent to the asynchronous interface via a Tokio multi-producer single-consumer channel and propagated upstream.
 
 \subsection{Wake Word Detection}
-A wake word is usually called the "name" of the voice assistant,
-common examples are "Hey Siri" or "Okay Google";
-a wake word allows hands-free activation of a voice assistant,
-which makes them a lot more pleasant to use.
+A wake word, typically the name of the voice assistant (for example, “Hey Siri” or “Okay Google”),
+allows hands‑free activation—making the assistant significantly more convenient to use.
 This project utilizes the Porcupine\footnote{Porcupine \cite{porcupine}} library for wake word detection,
 and "Ferris" as the wake word, which is the name of the voice assistant, as mentioned in \ref{sec:naming}.
 The detection process is implemented in the following code:
@@ -239,6 +240,26 @@ A non-negative keyword index means that a wake word was successfully detected.
 If wake word detection is enabled, the system transitions to recording mode.
 The frame buffer is cleared afterward to prepare for the next batch.
 This cycle continues, allowing continuous monitoring for wake word occurrences.
+\newline
+\begin{figure}[H]
+    Below is a flowchart overview showcasing the overall audio recording system, including wake word detection:
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.5\textwidth]{assets/wakeword.png}
+        \caption{Audio recording system and wake word detection}
+    \end{figure}
+    
+    Recording starts when the wake word is detected or the \texttt{start recording} command is received.
+    Any recorded audio data is written into a ring buffer, while the \texttt{stop recording} command is awaited in parallel.  
+    When the recording is stopped, the captured audio data is extracted from the ring buffer,
+    converted into WAV format, and sent to be transcribed by speech-to-text.
+\end{figure}
+
+\section{Protocol Updates}
+Raw TCP made it difficult to separate text from binary data, often requiring extra logic or a custom protocol.
+To simplify things, the setup was changed to use WebSockets over TCP.
+WebSockets include built-in message types, which makes it easier for both sides to tell whether data is text, binary, or a control message.
 
 \section{Speech-to-Text Transcription}
 
@@ -265,7 +286,7 @@ Neural network outputs are inherently non-deterministic, which introduces some a
 Decoding algorithms help resolve some uncertainty, integrating statistical language models
 that leverage context to select the most likely transcription.
 When dealing with variable-length inputs and timing discrepancies,
-connectionist temporal classification \footnote{Connectionist Temporal Classification \cite{ctc}}
+connectionist temporal classification\footnote{Connectionist Temporal Classification \cite{ctc}}
 is applied to collapse repeated predictions and blank sections, which provides a preliminary aligned sequence.
 This output is then further refined by attention-based models,
 which focus on ambiguous segments to provide a more accurate and coherent end result.
@@ -303,7 +324,9 @@ impl LocalWhisperClient {
     pub fn new(model: impl Into<String>, use_gpu: bool) -> Result<Self> {
         let mut params = WhisperContextParameters::default();
         params.use_gpu = use_gpu;
-        let context = Arc::new(WhisperContext::new_with_params(&model.into(), params)?);
+        let context = Arc::new(
+            WhisperContext::new_with_params(&model.into(), params)?
+        );
         Ok(Self { context })
     }
 }
@@ -369,7 +392,7 @@ Below is a simplified demonstration of this \texttt{match} statement.
 \begin{minted}{rust}
 match input_lower.as_str() {
     x if x.contains("close") => CloseWindow
-    
+
     x if x.contains("minimize") => MinimizeWindow
 
     x if x.contains("maximize") => MaximizeWindow
@@ -407,8 +430,18 @@ This output is then transformed into an \texttt{Action} object for downstream us
 
 \section{Geocoding}
 The geocoding service translates text-based location names into geographic coordinates.
-It processes \texttt{GeocodeResponse} objects from \texttt{GeocodingService}.
+It creates \texttt{GeocodeResponse} objects, which can later be used for weather queries.
 Each request requires latitude, longitude, and an API key, with optional parameters for \texttt{units}, \texttt{exclude}, and \texttt{lang}.
+An implementation of the geocoding service was a Nominatim\footnote{Nominatim \cite{nominatim}} client;
+Nominatim is the internal search engine used by OpenStreetMap to convert addresses into coordinates,
+and they provide a public API for it, which is available for free and works quite well, so there was no need for another implementation.
+
+\section{Weather}
+Querying the weather is a typical feature of voice assistants, so it was implemented here as well;
+the people at OpenWeatherMap are generous enough to provide 1,000 free calls to their weather API every day,
+so there was no need to set up a payment system or create another implementation of the weather service.
+The weather service is one of the simplest in the project --- it queries the OpenWeatherMap API
+and deserializes the response into Rust structs using the serde library.
 
 \section{Timers}
 Timers are among the first features associated with a voice assistant, making proper implementation essential.
@@ -424,16 +457,17 @@ Each timer requires a \texttt{Duration} and a description,
 which specifies the output message when the timer completed.
 
 \section{Raspberry Pi Setup}
-The voice assistant was developed for deployment on a Raspberry Pi 4,
-intended to function as a dedicated node in a smart home environment.
-Given the device's limited resources, particular care was taken to reduce local computational load.
+The voice assistant was designed to be deployed on a Raspberry Pi,
+whether it's a dedicated node in a smart home or just a helpful assistant on someone's desk.
+Given the Raspberry Pi's very limited hardware resources,
+particular care had to be taken to reduce its local computational load.
 Where possible, services were designed with remote execution in mind,
-as to not put any heavy load on the low-end hardware.
+to allow them to run on low-end hardware.
 Alpine Linux\footnote{Alpine Linux \cite{alpine}}
 was chosen as the operating system for its minimalism, fast boot times, and low memory usage.
 
 \subsection{Installation Procedure}
-To install the system, the aarch64 Raspberry Pi image was downloaded from the Alpine Linux website
+To install the system, an aarch64 Raspberry Pi image was downloaded from the Alpine Linux website
 and then flashed onto a microSD card using \texttt{dd}:
 \begin{minted}{bash}
 sudo dd if=alpine-rpi-*.img of=/dev/sdX bs=4M status=progress
@@ -441,26 +475,16 @@ sudo dd if=alpine-rpi-*.img of=/dev/sdX bs=4M status=progress
 
 The built-in \texttt{setup-alpine} script was executed to configure basic settings on the system.
 The script guided configuration of essential system settings including:
-keyboard layout, hostname, timezone, and network interfaces (using DHCP for simplicity).
-The user was prompted to set a root password, select an NTP client,
-and choose between diskless mode or installing Alpine to disk.
-For persistence, the "sys" mode was selected, writing to the microSD card directly.
-
-After installation, the system was rebooted.
-Network access was verified, and the community repository was enabled by editing \texttt{/etc/apk/repositories}.
-
-\subsection{Post-Install Environment Setup}
-Once the base system was operational, the \texttt{foot} terminal emulator was installed:
-\begin{minted}{bash}
-apk add foot
-\end{minted}
-Foot was selected for its performance and native Wayland support,
-making it an ideal terminal for lightweight graphical environments.
+keyboard layout, hostname, timezone, network configuration, and partitioning.
 
 KDE Plasma was then installed to provide a full desktop environment:
 \begin{minted}{bash}
 apk add plasma-desktop sddm xdg-utils
 rc-update add sddm
 \end{minted}
-This choice was deliberate, as a Qt-based graphical frontend was being developed in parallel.
-Using KDE ensured consistent toolkit behavior, better integration with Qt components, and a modern user experience with minimal overhead.
+This choice was deliberate, since the reference frontend is written in Qt,
+which is well integrated into KDE Plasma.
+
+Connecting the RGB LED and physical buttons was done using the RPPAL\footnote{Raspberry Pi Peripheral Access Library \cite{rppal}} Rust library ---
+if a recording was active the LED would light up green and if an error occured it would light up red.
+This could be configured further, but is not neccessary because errors are reported via text or audio either way.

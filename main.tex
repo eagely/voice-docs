@@ -5,6 +5,21 @@
 \usepackage{minted}
 \usepackage{mathpazo}
 \usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{siunitx}
+\sisetup{
+  output-decimal-marker = {.},
+  group-separator = {\,},
+  detect-all = true
+}
+\usepackage{eurosym}
+\usepackage[utf8]{inputenc}
+\usepackage{needspace}
+\usepackage{etoolbox}
+
+\preto{\section}{\needspace{6\baselineskip}}
+\preto{\subsection}{\needspace{5\baselineskip}}
+\preto{\subsubsection}{\needspace{4\baselineskip}}
 
 \school{HTBLuVA St. Pölten}
 \department{Higher Institute for Electronics and Technical Informatics}
@@ -32,9 +47,6 @@
 \currentauthor{Artemiy Smirnov}
 \include{topics/introduction}
 
-\currentauthor{Lukas Serloth}
-\include{topics/HW_introduction}
-
 \currentauthor{Artemiy Smirnov}
 \include{topics/concepts}
 
@@ -47,15 +59,19 @@
 \currentauthor{Artemiy Smirnov}
 \include{topics/planning}
 
+\currentauthor{Lukas Serloth}
+\include{topics/HW_planning}
+
 \currentauthor{Artemiy Smirnov}
 \include{topics/implementation}
 
 \currentauthor{Lukas Serloth}
 \include{topics/HW_implementation}
 
-\currentauthor{Artemiy Smirnov}
-\include{topics/results}
-
+\cleardoubleemptypage
+\currentauthor{}
+\chapter{Diploma Seminars}
+\newpage
 \currentauthor{Lukas Serloth}
 \include{topics/Seminar_1}
 
@@ -64,6 +80,9 @@
 
 \currentauthor{Lukas Serloth}
 \include{topics/Seminar_3}
+
+\currentauthor{Artemiy Smirnov}
+\include{topics/results}
 
 \currentauthor{Lukas Serloth}
 \include{topics/costs}
