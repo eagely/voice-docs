@@ -2,7 +2,7 @@
 \renewcommand*\chapterpagestyle{scrheadings}
 \chapter{Planning}
 Planning is vital to any project, as it establishes a clear path towards success;
-whilst one always needs to be creative along the way, a well-established plan
+while one always needs to be creative along the way, a well-established plan
 helps ensure that the final goal is clear and attainable.
 Setting clear goals allows the team to allocate resources properly,
 which includes identifying potential risks, such as exam periods along the way
@@ -73,7 +73,7 @@ configuring the system, playing back audio as well as displaying text. The sourc
 
 \subsection{Language and Framework} \label{subsec:language-and-framework}
 The backend will be written using Kotlin and the Spring Framework, utilizing the extensive feature set, documentation, and support the framework and the language both have.
-Sprint Boot is a Java-based framework that allows developers to build huge stand-alone applications using any language that compiles to the JVM,
+Spring Boot is a Java-based framework that allows developers to build huge stand-alone applications using any language that compiles to the JVM,
 which are mainly Java, Kotlin, Groovy and Scala; however only Java and Kotlin are supported and maintained out of the box.
 Much of its configuration is handled automatically, living by a concept called "convention over configuration"
 where the user only needs to do minimal configuration to get a working application.
@@ -85,7 +85,7 @@ A major issue in many large applications is the monolithic structure of the soft
 where everything is tightly-coupled and changing individual bits of the program
 often requires extensive and breaking changes in the event loop and other parts of the program
 which should be compeletly unrelated.
-This is where the microservices architecture \footnote{Microservices Architecture \cite{microservices}}
+This is where the microservices architecture\footnote{Microservices Architecture \cite{microservices}}
 comes into play; this type of architecture organizes the program into many loosely-coupled parts
 which can each have various different implementations to allow the user to choose between them.
 
@@ -95,7 +95,7 @@ is implemented here and can be inserted in place of the previous event loop, whi
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{assets/processing-pre}
-\caption{Client-Server Architecture}
+\caption{Processing of audio}
 \label{chart:processing-pre}
 \end{figure}
 

@@ -1,0 +1,28 @@
+\section{Hardware Overview}
+
+The voice assistant is built to run on a Raspberry Pi 4, chosen for its small form factor and flexibility.
+While not especially powerful by modern standards, the Raspberry Pi 4 offers enough performance to handle voice input and process
+the user's request using remote APIs.
+Nevertheless, it is still possible and perfectly acceptable to run the voice assistant on any other Unix-like system,
+whether that's a work computer or a more powerful single-board computer made to run machine learning models locally.
+
+The system is designed to work either with a regular power supply or a rechargeable battery;
+adding a battery is crucial to keep the system active during power outages.
+
+\subsection{User Interface and Hardware Components}
+
+The printed circuit board includes an RGB LED to signal the current state of the system,
+be that lighting up green when recording, or red when an error occurs.
+The user can start a recording in three different ways:
+\begin{itemize}
+    \item Press record button on the touchscreen
+    \item Press the dedicated physical recording button
+    \item Say the wake word (if enabled)
+\end{itemize}
+There is also a button --- both on the touchscreen and a physical button ---
+that allows the user to toggle wake word detection.
+
+\subsection{Display and Visual Feedback}
+
+A 10.1-inch LCD display should be connected via HDMI to the Raspberry Pi ---
+this display allows text output and touchscreen input, especially for configuring settings.
